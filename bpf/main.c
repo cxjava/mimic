@@ -67,8 +67,8 @@ int store_packet(struct __sk_buff* skb, __u32 pkt_off, struct conn_tuple* key, i
     if (copy_len > 0 && copy_len < SEGMENT_SIZE) {
       bpf_gt0_hack2(copy_len);
       __u32 data_offset = sizeof(*item) + offset;
-      if (unlikely(data_offset + copy_len > alloc_size)) cleanup(TC_ACT_SHOT);
-      packet = bpf_dynptr_data(&ptr, data_offset, copy_len);
+      if (unlikely(data_offset + SEGMENT_SIZE > alloc_size)) cleanup(TC_ACT_SHOT);
+      packet = bpf_dynptr_data(&ptr, data_offset, SEGMENT_SIZE);
       if (!packet) cleanup(TC_ACT_SHOT);
       if (bpf_skb_load_bytes(skb, pkt_off + offset, packet, copy_len) < 0) cleanup(TC_ACT_SHOT);
     }
