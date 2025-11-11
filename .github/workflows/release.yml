@@ -64,8 +64,24 @@ jobs:
         run: |
           cd debian/artifacts
           _files=($(find . -type f -name 'mimic*.deb' -printf '%P\n') $(find . -type f -name 'mimic*.ddeb' -printf '%P\n'))
-          for _f in ${_files[@]}; do
-            sudo mv "$_f" "${{ matrix.distro.codename }}_$_f";
-            sha256sum "${{ matrix.distro.codename }}_$_f" > "../${{ matrix.distro.codename }}_$_f.sha256"
+          upload_files=()
+          sha_files=()
+          for _f in "${_files[@]}"; do
+            if [[ "$_f" == *"_all.deb" || "$_f" == *"_all.ddeb" ]]; then
+              if [[ "${{ matrix.arch }}" != "amd64" ]]; then
+                echo "Skipping architecture-independent package $_f on ${{ matrix.arch }}"
+                continue
+              fi
+            fi
+            target="${{ matrix.distro.codename }}_$_f"
+            sudo mv "$_f" "$target"
+            sha_path="../${target}.sha256"
+            sha256sum "$target" > "$sha_path"
+            upload_files+=("$target")
+            sha_files+=("$sha_path")
           done
-          gh release upload $(sed 's|refs/tags/||' <(echo ${{ github.ref }})) ${_files[@]/#/${{ matrix.distro.codename }}_} ../*.sha256
+          if ((${#upload_files[@]})); then
+            gh release upload "$(sed 's|refs/tags/||' <(echo ${{ github.ref }}))" "${upload_files[@]}" "${sha_files[@]}"
+          else
+            echo "No packages to upload for ${{ matrix.distro.name }} (${{ matrix.arch }})"
+          fi
