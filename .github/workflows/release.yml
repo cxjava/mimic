@@ -68,8 +68,14 @@ jobs:
           sha_files=()
           for _f in "${_files[@]}"; do
             if [[ "$_f" == *"_all.deb" || "$_f" == *"_all.ddeb" ]]; then
+              alias_target="${{ matrix.distro.codename }}_${_f/_all./_${{ matrix.arch }}.}"
+              sudo cp "$_f" "$alias_target"
+              sha_alias="../${alias_target}.sha256"
+              sha256sum "$alias_target" > "$sha_alias"
+              upload_files+=("$alias_target")
+              sha_files+=("$sha_alias")
               if [[ "${{ matrix.arch }}" != "amd64" ]]; then
-                echo "Skipping architecture-independent package $_f on ${{ matrix.arch }}"
+                echo "Skipping base architecture-independent package $_f on ${{ matrix.arch }}"
                 continue
               fi
             fi
