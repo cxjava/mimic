@@ -31,7 +31,7 @@ int send_ctrl_packet(struct conn_tuple* conn, __be32 flags, __u32 seq, __u32 ack
 }
 
 int store_packet(struct __sk_buff* skb, __u32 pkt_off, struct conn_tuple* key, int ip_summed) {
-  int retcode;
+  int retcode = TC_ACT_SHOT;
   __u32 data_len = skb->len - pkt_off;
   if (unlikely(!key || data_len > MAX_PACKET_SIZE)) return TC_ACT_SHOT;
 
@@ -51,10 +51,13 @@ int store_packet(struct __sk_buff* skb, __u32 pkt_off, struct conn_tuple* key, i
 
   char* packet = NULL;
   __u32 offset = 0, i = 0;
-  for (; i < segments - has_remainder; i++) {
+  __u32 full_segments = segments - has_remainder;
+  for (; i < full_segments; i++) {
     if (i > MAX_PACKET_SIZE / SEGMENT_SIZE + 1) break;
     offset = i * SEGMENT_SIZE;
-    packet = bpf_dynptr_data(&ptr, sizeof(*item) + offset, SEGMENT_SIZE);
+    __u32 data_offset = sizeof(*item) + offset;
+    if (unlikely(data_offset + SEGMENT_SIZE > alloc_size)) cleanup(TC_ACT_SHOT);
+    packet = bpf_dynptr_data(&ptr, data_offset, SEGMENT_SIZE);
     if (!packet) cleanup(TC_ACT_SHOT);
     if (bpf_skb_load_bytes(skb, pkt_off + offset, packet, SEGMENT_SIZE) < 0) cleanup(TC_ACT_SHOT);
   }
@@ -63,7 +66,9 @@ int store_packet(struct __sk_buff* skb, __u32 pkt_off, struct conn_tuple* key, i
     __u32 copy_len = data_len % SEGMENT_SIZE;
     if (copy_len > 0 && copy_len < SEGMENT_SIZE) {
       bpf_gt0_hack2(copy_len);
-      packet = bpf_dynptr_data(&ptr, sizeof(*item) + offset, SEGMENT_SIZE);
+      __u32 data_offset = sizeof(*item) + offset;
+      if (unlikely(data_offset + copy_len > alloc_size)) cleanup(TC_ACT_SHOT);
+      packet = bpf_dynptr_data(&ptr, data_offset, copy_len);
       if (!packet) cleanup(TC_ACT_SHOT);
       if (bpf_skb_load_bytes(skb, pkt_off + offset, packet, copy_len) < 0) cleanup(TC_ACT_SHOT);
     }
