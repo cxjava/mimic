@@ -11,31 +11,38 @@ show_help() {
 Mimic 配置脚本 - 自动配置和启动 Mimic 服务
 
 用法:
-  bash configure.sh [MODE] [IFACE] [PORTS] [REMOTE_IP]
+  bash configure.sh [MODE] [IFACE] [PORTS] [SERVER_IP/REMOTE_IP]
   bash configure.sh -h|--help
 
 参数:
-  MODE        运行模式: server 或 client (默认: server)
-  IFACE       网络接口名称 (默认: eth0)
-  PORTS       端口号，支持以下格式:
-              - 单个端口: 5678
-              - 多个端口: 5678,5679,5680
-              - 端口范围: 5678-5680
-              - 混合使用: 5678,5680-5682,5690
-              (默认: 5678)
-  REMOTE_IP   远程 IP 地址 (仅客户端模式需要)
-              支持多个 IP 地址，逗号分隔 (IPv4 和 IPv6)
-              (默认: 1.2.3.4)
+  MODE            运行模式: server 或 client (默认: server)
+  IFACE           网络接口名称 (默认: eth0)
+  PORTS           端口号，支持以下格式:
+                  - 单个端口: 5678
+                  - 多个端口: 5678,5679,5680
+                  - 端口范围: 5678-5680
+                  - 混合使用: 5678,5680-5682,5690
+                  (默认: 5678)
+  SERVER_IP       服务端 IP 地址 (服务端模式可选)
+                  - 不指定: 自动检测所有 IP (外网+内网, IPv4+IPv6)
+                  - 指定: 使用指定的 IP，支持多个 IP，逗号分隔
+  REMOTE_IP       远程 IP 地址 (客户端模式必需)
+                  - 支持多个 IP 地址，逗号分隔 (IPv4 和 IPv6)
 
 选项:
   -h, --help  显示此帮助信息并退出
 
 服务端模式说明:
-  服务端模式会自动检测服务器的所有 IP 地址，包括:
-  - 外网 IPv4 地址 (通过 curl -4 ip.sb 获取)
-  - 外网 IPv6 地址 (通过 curl -6 ip.sb 获取)
-  - 本地 IPv4 地址 (包括内网地址如 10.x.x.x, 192.168.x.x)
-  - 本地 IPv6 地址 (排除本地回环和链接本地地址)
+  1. 自动检测模式（不指定 SERVER_IP）:
+     自动检测服务器的所有 IP 地址，包括:
+     - 外网 IPv4 地址 (通过 curl -4 ip.sb 获取)
+     - 外网 IPv6 地址 (通过 curl -6 ip.sb 获取)
+     - 本地 IPv4 地址 (包括内网地址如 10.x.x.x, 192.168.x.x)
+     - 本地 IPv6 地址 (排除本地回环和链接本地地址)
+  
+  2. 手动指定模式（指定 SERVER_IP）:
+     使用您指定的 IP 地址，跳过自动检测
+     支持多个 IP 地址，逗号分隔 (IPv4 和 IPv6)
   
   然后为每个 IP 地址和每个端口生成过滤规则。
 
@@ -45,32 +52,38 @@ Mimic 配置脚本 - 自动配置和启动 Mimic 服务
 
 示例:
 
-  1. 服务端模式 - 单端口
+  1. 服务端模式 - 自动检测 IP (推荐)
      bash configure.sh server eth0 5678
 
-  2. 服务端模式 - 多端口
+  2. 服务端模式 - 自动检测 + 多端口
      bash configure.sh server eth0 "5678,5679,5680"
 
-  3. 服务端模式 - 端口范围
-     bash configure.sh server eth0 "5678-5680"
+  3. 服务端模式 - 手动指定单个 IP
+     bash configure.sh server eth0 5678 "1.2.3.4"
 
-  4. 服务端模式 - 混合端口
-     bash configure.sh server eth0 "5678,5680-5682,5690"
+  4. 服务端模式 - 手动指定多个 IP
+     bash configure.sh server eth0 5678 "1.2.3.4,10.0.0.1"
 
-  5. 客户端模式 - 单个远程 IP
+  5. 服务端模式 - 手动指定 IPv4 + IPv6
+     bash configure.sh server eth0 "5678-5680" "1.2.3.4,2001:db8::1"
+
+  6. 服务端模式 - 手动指定多 IP + 多端口
+     bash configure.sh server eth0 "5678,5679" "1.2.3.4,10.0.0.1,2001:db8::1"
+
+  7. 客户端模式 - 单个远程 IP
      bash configure.sh client eth0 5678 "1.2.3.4"
 
-  6. 客户端模式 - 多个远程 IPv4
+  8. 客户端模式 - 多个远程 IPv4
      bash configure.sh client eth0 "5678,5679" "1.2.3.4,5.6.7.8"
 
-  7. 客户端模式 - 混合 IPv4 和 IPv6
+  9. 客户端模式 - 混合 IPv4 和 IPv6
      bash configure.sh client eth0 5678 "1.2.3.4,2001:db8::1,5.6.7.8"
 
-  8. 客户端模式 - 多端口 + 多 IP
-     bash configure.sh client eth0 "5678-5680" "1.2.3.4,5.6.7.8,2001:db8::1"
+  10. 客户端模式 - 多端口 + 多 IP
+      bash configure.sh client eth0 "5678-5680" "1.2.3.4,5.6.7.8,2001:db8::1"
 
-  9. 使用默认参数 (服务端模式, eth0, 端口 5678)
-     bash configure.sh
+  11. 使用默认参数 (服务端自动检测, eth0, 端口 5678)
+      bash configure.sh
 
 配置文件位置:
   /etc/mimic/${IFACE}.conf
@@ -106,7 +119,7 @@ fi
 MODE=${1:-server}
 IFACE=${2:-eth0}
 PORTS=${3:-5678}
-REMOTE_IP=${4:-1.2.3.4}
+SERVER_OR_REMOTE_IP=${4:-}  # 服务端或客户端 IP，为空表示服务端自动检测
 
 echo "=== [1/5] 检查 Mimic 是否已安装 ==="
 if ! command -v mimic >/dev/null 2>&1; then
@@ -136,11 +149,22 @@ done
 
 echo "将监听以下端口: ${EXPANDED_PORTS[*]}"
 
-# 解析远程 IP 地址（客户端模式使用）
+# 解析 IP 地址
 if [ "$MODE" = "client" ]; then
+  # 客户端模式：解析远程 IP 地址
   echo "=== [3/5] 解析远程 IP 地址 ==="
-  IFS=',' read -r -a REMOTE_IP_LIST <<< "$REMOTE_IP"
+  if [ -z "$SERVER_OR_REMOTE_IP" ]; then
+    echo "❌ 客户端模式必须指定远程 IP 地址"
+    echo "用法: bash configure.sh client eth0 5678 \"1.2.3.4\""
+    exit 1
+  fi
+  IFS=',' read -r -a REMOTE_IP_LIST <<< "$SERVER_OR_REMOTE_IP"
   echo "将连接以下远程 IP: ${REMOTE_IP_LIST[*]}"
+elif [ "$MODE" = "server" ] && [ -n "$SERVER_OR_REMOTE_IP" ]; then
+  # 服务端模式 + 手动指定 IP：解析服务端 IP 地址
+  echo "=== [3/5] 解析服务端 IP 地址 ==="
+  IFS=',' read -r -a SERVER_IP_LIST <<< "$SERVER_OR_REMOTE_IP"
+  echo "将使用以下服务端 IP: ${SERVER_IP_LIST[*]}"
 fi
 
 echo "=== [$([ "$MODE" = "client" ] && echo "4" || echo "3")/5] 生成 Mimic 配置文件 ==="
@@ -157,61 +181,90 @@ max_window = false
 EOF
 
 if [ "$MODE" = "server" ]; then
-  echo "检测服务器 IP 地址..."
-  
-  # 获取真实外网 IPv4 地址
-  echo "正在获取外网 IPv4 地址..."
-  PUBLIC_IPV4=$(curl -4 -s --connect-timeout 5 --max-time 10 ip.sb 2>/dev/null || true)
-  if [ -n "$PUBLIC_IPV4" ] && [[ "$PUBLIC_IPV4" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "  外网 IPv4: $PUBLIC_IPV4"
+  # 检查是否手动指定了 IP
+  if [ -n "$SERVER_OR_REMOTE_IP" ]; then
+    # 手动指定模式：使用用户提供的 IP 地址
+    echo "使用手动指定的服务端 IP 地址（跳过自动检测）"
+    
+    # 分离 IPv4 和 IPv6 地址
+    ALL_IPV4=""
+    ALL_IPV6=""
+    
+    for ip in "${SERVER_IP_LIST[@]}"; do
+      if [[ "$ip" =~ : ]]; then
+        # IPv6 地址
+        if [ -z "$ALL_IPV6" ]; then
+          ALL_IPV6="$ip"
+        else
+          ALL_IPV6="$ALL_IPV6"$'\n'"$ip"
+        fi
+      else
+        # IPv4 地址
+        if [ -z "$ALL_IPV4" ]; then
+          ALL_IPV4="$ip"
+        else
+          ALL_IPV4="$ALL_IPV4"$'\n'"$ip"
+        fi
+      fi
+    done
   else
-    PUBLIC_IPV4=""
-  fi
-  
-  # 获取真实外网 IPv6 地址
-  echo "正在获取外网 IPv6 地址..."
-  PUBLIC_IPV6=$(curl -6 -s --connect-timeout 5 --max-time 10 ip.sb 2>/dev/null || true)
-  if [ -n "$PUBLIC_IPV6" ] && [[ "$PUBLIC_IPV6" =~ : ]]; then
-    echo "  外网 IPv6: $PUBLIC_IPV6"
-  else
-    PUBLIC_IPV6=""
-  fi
-  
-  # 获取所有本地 IPv4 地址（排除 127.0.0.1）
-  IPV4_ADDRS=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' || true)
-  
-  # 获取所有本地 IPv6 地址（排除 ::1 和 fe80 本地链接地址）
-  IPV6_ADDRS=$(ip -6 addr show | grep -oP '(?<=inet6\s)[0-9a-f:]+' | grep -v '^::1$' | grep -v '^fe80:' || true)
-  
-  # 合并外网 IPv4 和本地 IPv4 地址（去重）
-  ALL_IPV4=""
-  if [ -n "$PUBLIC_IPV4" ]; then
-    ALL_IPV4="$PUBLIC_IPV4"
-  fi
-  if [ -n "$IPV4_ADDRS" ]; then
-    if [ -n "$ALL_IPV4" ]; then
-      ALL_IPV4="$ALL_IPV4"$'\n'"$IPV4_ADDRS"
+    # 自动检测模式：检测所有可用的 IP 地址
+    echo "自动检测服务器 IP 地址..."
+    
+    # 获取真实外网 IPv4 地址
+    echo "正在获取外网 IPv4 地址..."
+    PUBLIC_IPV4=$(curl -4 -s --connect-timeout 5 --max-time 10 ip.sb 2>/dev/null || true)
+    if [ -n "$PUBLIC_IPV4" ] && [[ "$PUBLIC_IPV4" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "  外网 IPv4: $PUBLIC_IPV4"
     else
-      ALL_IPV4="$IPV4_ADDRS"
+      PUBLIC_IPV4=""
     fi
-  fi
-  # 去重
-  ALL_IPV4=$(echo "$ALL_IPV4" | sort -u)
-  
-  # 合并外网 IPv6 和本地 IPv6 地址（去重）
-  ALL_IPV6=""
-  if [ -n "$PUBLIC_IPV6" ]; then
-    ALL_IPV6="$PUBLIC_IPV6"
-  fi
-  if [ -n "$IPV6_ADDRS" ]; then
-    if [ -n "$ALL_IPV6" ]; then
-      ALL_IPV6="$ALL_IPV6"$'\n'"$IPV6_ADDRS"
+    
+    # 获取真实外网 IPv6 地址
+    echo "正在获取外网 IPv6 地址..."
+    PUBLIC_IPV6=$(curl -6 -s --connect-timeout 5 --max-time 10 ip.sb 2>/dev/null || true)
+    if [ -n "$PUBLIC_IPV6" ] && [[ "$PUBLIC_IPV6" =~ : ]]; then
+      echo "  外网 IPv6: $PUBLIC_IPV6"
     else
-      ALL_IPV6="$IPV6_ADDRS"
+      PUBLIC_IPV6=""
     fi
+    
+    # 获取所有本地 IPv4 地址（排除 127.0.0.1）
+    IPV4_ADDRS=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' || true)
+    
+    # 获取所有本地 IPv6 地址（排除 ::1 和 fe80 本地链接地址）
+    IPV6_ADDRS=$(ip -6 addr show | grep -oP '(?<=inet6\s)[0-9a-f:]+' | grep -v '^::1$' | grep -v '^fe80:' || true)
+    
+    # 合并外网 IPv4 和本地 IPv4 地址（去重）
+    ALL_IPV4=""
+    if [ -n "$PUBLIC_IPV4" ]; then
+      ALL_IPV4="$PUBLIC_IPV4"
+    fi
+    if [ -n "$IPV4_ADDRS" ]; then
+      if [ -n "$ALL_IPV4" ]; then
+        ALL_IPV4="$ALL_IPV4"$'\n'"$IPV4_ADDRS"
+      else
+        ALL_IPV4="$IPV4_ADDRS"
+      fi
+    fi
+    # 去重
+    ALL_IPV4=$(echo "$ALL_IPV4" | sort -u)
+    
+    # 合并外网 IPv6 和本地 IPv6 地址（去重）
+    ALL_IPV6=""
+    if [ -n "$PUBLIC_IPV6" ]; then
+      ALL_IPV6="$PUBLIC_IPV6"
+    fi
+    if [ -n "$IPV6_ADDRS" ]; then
+      if [ -n "$ALL_IPV6" ]; then
+        ALL_IPV6="$ALL_IPV6"$'\n'"$IPV6_ADDRS"
+      else
+        ALL_IPV6="$IPV6_ADDRS"
+      fi
+    fi
+    # 去重
+    ALL_IPV6=$(echo "$ALL_IPV6" | sort -u)
   fi
-  # 去重
-  ALL_IPV6=$(echo "$ALL_IPV6" | sort -u)
   
   # 为每个 IPv4 地址和每个端口生成过滤规则
   if [ -n "$ALL_IPV4" ]; then
@@ -288,7 +341,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "模式: $MODE"
 echo "接口: $IFACE"
 echo "端口: ${EXPANDED_PORTS[*]}"
-[ "$MODE" = "client" ] && echo "远端 IP: ${REMOTE_IP_LIST[*]}"
+if [ "$MODE" = "client" ]; then
+  echo "远端 IP: ${REMOTE_IP_LIST[*]}"
+elif [ "$MODE" = "server" ] && [ -n "$SERVER_OR_REMOTE_IP" ]; then
+  echo "服务端 IP: ${SERVER_IP_LIST[*]} (手动指定)"
+elif [ "$MODE" = "server" ]; then
+  echo "服务端 IP: 自动检测"
+fi
 echo "配置文件: $CONF_FILE"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo
